@@ -1,0 +1,39 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "seed:driver-onboarding": "node scripts/seedDriverOnboarding.js",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "seed:test-accounts": "node scripts/seedTestAccounts.js",
+    "test:load": "node scripts/testing/loadTest.js",
+    "test:surge": "node scripts/testing/surgeStressTest.js",
+    "test:queue": "node scripts/testing/airportQueueTest.js",
+    "test:payment": "node scripts/testing/paymentTest.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1003.0",
+    "@mapbox/polyline": "^1.2.1",
+    "axios": "^1.13.6",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "ioredis": "^5.10.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.2.4",
+    "multer": "^2.1.1",
+    "pg": "^8.20.0",
+    "socket.io": "^4.8.3",
+    "stripe": "^20.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^10.0.3"
+  }
+}

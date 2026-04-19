@@ -1,0 +1,121 @@
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const http = require('http');
+const socketIo = require('socket.io');
+const { getRedisClient } = require('./services/redisClient');
+const { getPostgresStatus } = require('./services/postgresClient');
+const { registerLocationSocketHandlers } = require('./sockets/locationSocket');
+const { securityHeaders } = require('./middleware/securityHeaders');
+const { createRateLimiter } = require('./middleware/rateLimit');
+require('dotenv').config();
+
+const DEFAULT_PRODUCTION_CORS_ORIGINS = [
+  'https://rydinex.com',
+  'https://www.rydinex.com',
+  'https://Rydinex-production.up.railway.app',
+  'https://trustworthy-purpose-production.up.railway.app',
+  'https://admin.rydinex.com',
+  'https://genuine-grace-production-6f60.up.railway.app',
+];
+
+const app = express();
+app.disable('x-powered-by');
+
+const corsOrigin = process.env.CORS_ORIGIN || (
+  process.env.NODE_ENV === 'production'
+    ? DEFAULT_PRODUCTION_CORS_ORIGINS.join(',')
+    : '*'
+);
+
+const parsedCorsOrigin = corsOrigin.includes(',')
+  ? corsOrigin
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean)
+  : corsOrigin;
+
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: parsedCorsOrigin,
+    methods: ['GET', 'POST'],
+  },
+});
+
+app.locals.io = io;
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✓ MongoDB connected'))
+  .catch(err => console.error('✗ MongoDB connection error:', err));
+
+// Connect to Redis
+const redisClient = getRedisClient();
+app.locals.redisClient = redisClient;
+
+// Middleware
+const globalRateLimiter = createRateLimiter({
+  identifier: 'global',
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000),
+  max: Number(process.env.RATE_LIMIT_MAX || 240),
+  message: 'Too many requests. Please try again in a moment.',
+});
+
+app.use(securityHeaders);
+app.use(
+  cors({
+    origin: parsedCorsOrigin,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    optionsSuccessStatus: 204,
+  })
+);
+app.use(express.json({ limit: process.env.REQUEST_BODY_LIMIT || '256kb' }));
+app.use(globalRateLimiter);
+
+// Socket.IO handlers
+registerLocationSocketHandlers(io);
+
+// Routes
+app.get('/api/health', async (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    mongo: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    redis: redisClient.status || 'unknown',
+    postgres: await getPostgresStatus(),
+  });
+});
+
+// API Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/rides', require('./routes/rides'));
+app.use('/api/drivers', require('./routes/drivers'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/locations', require('./routes/locations'));
+app.use('/api/airport-queue', require('./routes/airportQueue'));
+app.use('/api/prd/events', require('./routes/prdEvents'));
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  });
+});
+
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
+  console.log(`\n✓ Rydinex API Server running on http://localhost:${PORT}`);
+  console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`  WebSocket enabled on ws://localhost:${PORT}`);
+});
+
+module.exports = { app, server, io };

@@ -1,0 +1,138 @@
+{
+  "info": {
+    "name": "Rydinex Driver Onboarding",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Requests for testing driver onboarding APIs."
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Register Driver",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.driver && json.driver.id) {",
+              "  pm.environment.set('driverId', json.driver.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Driver\",\n  \"phone\": \"+15551000002\",\n  \"email\": \"postman.driver@rydinex.com\",\n  \"password\": \"Passw0rd!123\"\n}"
+        },
+        "url": "{{baseUrl}}/drivers/register"
+      }
+    },
+    {
+      "name": "Upload Driver Document",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "docType",
+              "value": "license",
+              "type": "text"
+            },
+            {
+              "key": "document",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/drivers/{{driverId}}/documents"
+      }
+    },
+    {
+      "name": "Save Vehicle Info",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"make\": \"Honda\",\n  \"model\": \"Civic\",\n  \"year\": 2021,\n  \"plateNumber\": \"URD-9001\",\n  \"color\": \"Black\"\n}"
+        },
+        "url": "{{baseUrl}}/drivers/{{driverId}}/vehicle"
+      }
+    },
+    {
+      "name": "Get Driver Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/drivers/{{driverId}}/status"
+      }
+    },
+    {
+      "name": "Admin List Pending Drivers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/drivers?status=pending"
+      }
+    },
+    {
+      "name": "Admin Approve Driver",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"approve\"\n}"
+        },
+        "url": "{{baseUrl}}/admin/drivers/{{driverId}}/review"
+      }
+    },
+    {
+      "name": "Admin Reject Driver",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"reject\",\n  \"rejectionReason\": \"Missing document clarity\"\n}"
+        },
+        "url": "{{baseUrl}}/admin/drivers/{{driverId}}/review"
+      }
+    }
+  ]
+}
