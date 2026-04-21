@@ -11,12 +11,19 @@ const { createRateLimiter } = require('./middleware/rateLimit');
 require('dotenv').config();
 
 const DEFAULT_PRODUCTION_CORS_ORIGINS = [
+  'https://prd.rydinex.com',
+  'https://prd-production-3f0d.up.railway.app',
+  'https://driver.rydinex.com',
+  'https://driverapp-production-46d5.up.railway.app',
+  'https://rider.rydinex.com',
+  'https://riderapp-production.up.railway.app',
+  'https://admin-dashboard-production-3036.up.railway.app',
   'https://rydinex.com',
   'https://www.rydinex.com',
-  'https://Rydinex-production.up.railway.app',
-  'https://trustworthy-purpose-production.up.railway.app',
+  'https://frontend-production-89ef.up.railway.app',
+  'https://api.rydinex.com',
+  'https://backend-production-7e222.up.railway.app',
   'https://admin.rydinex.com',
-  'https://genuine-grace-production-6f60.up.railway.app',
 ];
 
 const app = express();
