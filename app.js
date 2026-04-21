@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
 const { getRedisClient } = require('./services/redisClient');
-const { getPostgresStatus } = require('./services/postgresClient');
+const { getPostgresStatus, getPostgresLastError } = require('./services/postgresClient');
 const { registerLocationSocketHandlers } = require('./sockets/locationSocket');
 const { securityHeaders } = require('./middleware/securityHeaders');
 const { createRateLimiter } = require('./middleware/rateLimit');
@@ -52,15 +52,31 @@ const io = socketIo(server, {
 
 app.locals.io = io;
 
-// Connect to MongoDB (supports legacy MONGO_URL)
-const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL;
+// Connect to MongoDB (supports common legacy env names)
+const mongoUri =
+  process.env.MONGO_URI || process.env.MONGO_URL || process.env.MONGODB_URI;
+let lastMongoError = null;
+
+mongoose.connection.on('connected', () => {
+  lastMongoError = null;
+});
+
+mongoose.connection.on('error', err => {
+  lastMongoError = err.message;
+});
 
 if (mongoUri) {
-  mongoose.connect(mongoUri.trim())
+  mongoose.connect(mongoUri.trim(), {
+    serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 10_000),
+  })
     .then(() => console.log('✓ MongoDB connected'))
-    .catch(err => console.error('✗ MongoDB connection error:', err));
+    .catch(err => {
+      lastMongoError = err.message;
+      console.error('✗ MongoDB connection error:', err.message);
+    });
 } else {
-  console.error('✗ MongoDB connection error: missing MONGO_URI/MONGO_URL');
+  lastMongoError = 'missing MONGO_URI/MONGO_URL/MONGODB_URI';
+  console.error('✗ MongoDB connection error: missing MONGO_URI/MONGO_URL/MONGODB_URI');
 }
 
 // Connect to Redis
@@ -91,12 +107,24 @@ registerLocationSocketHandlers(io);
 
 // Routes
 app.get('/api/health', async (req, res) => {
+  const mongoStateMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+  };
+
+  const mongo = mongoStateMap[mongoose.connection.readyState] || 'unknown';
+  const postgres = await getPostgresStatus();
+
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    mongo: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    mongo,
+    mongoError: mongo === 'connected' ? null : lastMongoError,
     redis: redisClient.status || 'unknown',
-    postgres: await getPostgresStatus(),
+    postgres,
+    postgresError: postgres === 'error' ? getPostgresLastError() : null,
   });
 });
 

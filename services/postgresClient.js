@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 
 let pool;
+let lastPostgresError = null;
 
 function normalizeConnectionString(value) {
   if (typeof value !== 'string') {
@@ -24,7 +25,12 @@ function normalizeConnectionString(value) {
 
 function getDatabaseUrl() {
   return normalizeConnectionString(
-    process.env.DATABASE_URL || process.env.ConnectionStrings__DefaultConnection
+    process.env.DATABASE_URL ||
+      process.env.DATABASE_PUBLIC_URL ||
+      process.env.POSTGRES_URL ||
+      process.env.POSTGRESQL_URL ||
+      process.env.PG_URL ||
+      process.env.ConnectionStrings__DefaultConnection
   );
 }
 
@@ -81,6 +87,7 @@ function getPostgresPool() {
   if (!pool) {
     pool = new Pool(buildConfig());
     pool.on('error', err => {
+      lastPostgresError = err.message;
       console.error('PostgreSQL pool error:', err.message);
     });
   }
@@ -97,14 +104,21 @@ async function getPostgresStatus() {
 
   try {
     await postgresPool.query('SELECT 1');
+    lastPostgresError = null;
     return 'connected';
   } catch (err) {
+    lastPostgresError = err.message;
     return 'error';
   }
+}
+
+function getPostgresLastError() {
+  return lastPostgresError;
 }
 
 module.exports = {
   getPostgresPool,
   getPostgresStatus,
+  getPostgresLastError,
   isPostgresConfigured,
 };
