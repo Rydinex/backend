@@ -2,6 +2,32 @@ const { Pool } = require('pg');
 
 let pool;
 
+function normalizeConnectionString(value) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
+function getDatabaseUrl() {
+  return normalizeConnectionString(
+    process.env.DATABASE_URL || process.env.ConnectionStrings__DefaultConnection
+  );
+}
+
 function toBoolean(value) {
   if (typeof value !== 'string') {
     return false;
@@ -11,13 +37,16 @@ function toBoolean(value) {
 }
 
 function isPostgresConfigured() {
+  const databaseUrl = getDatabaseUrl();
+
   return Boolean(
-    process.env.DATABASE_URL ||
+    databaseUrl ||
       (process.env.PGHOST && process.env.PGUSER && process.env.PGDATABASE)
   );
 }
 
 function buildConfig() {
+  const databaseUrl = getDatabaseUrl();
   const sslEnabled = toBoolean(process.env.PGSSL) || toBoolean(process.env.PGSSLMODE);
   const baseConfig = {
     max: Number(process.env.PGPOOL_MAX || 10),
@@ -25,10 +54,10 @@ function buildConfig() {
     connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS || 10_000),
   };
 
-  if (process.env.DATABASE_URL) {
+  if (databaseUrl) {
     return {
       ...baseConfig,
-      connectionString: process.env.DATABASE_URL,
+      connectionString: databaseUrl,
       ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
     };
   }

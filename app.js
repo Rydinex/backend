@@ -52,10 +52,16 @@ const io = socketIo(server, {
 
 app.locals.io = io;
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✓ MongoDB connected'))
-  .catch(err => console.error('✗ MongoDB connection error:', err));
+// Connect to MongoDB (supports legacy MONGO_URL)
+const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL;
+
+if (mongoUri) {
+  mongoose.connect(mongoUri.trim())
+    .then(() => console.log('✓ MongoDB connected'))
+    .catch(err => console.error('✗ MongoDB connection error:', err));
+} else {
+  console.error('✗ MongoDB connection error: missing MONGO_URI/MONGO_URL');
+}
 
 // Connect to Redis
 const redisClient = getRedisClient();

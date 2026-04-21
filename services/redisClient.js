@@ -2,9 +2,32 @@ const Redis = require('ioredis');
 
 let redisClient = null;
 
+function normalizeRedisUrl(value) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
 function getRedisClient() {
   if (!redisClient) {
-    const redisUrl = process.env.REDIS_URL || process.env.REDIS_URI || 'redis://localhost:6379';
+    const redisUrl =
+      normalizeRedisUrl(process.env.REDIS_URL) ||
+      normalizeRedisUrl(process.env.REDIS_URI) ||
+      'redis://localhost:6379';
     
     redisClient = new Redis(redisUrl, {
       retryStrategy: (times) => {
