@@ -54,7 +54,14 @@ app.locals.io = io;
 
 // Connect to MongoDB (supports common legacy env names)
 const mongoUri =
-  process.env.MONGO_URI || process.env.MONGO_URL || process.env.MONGODB_URI;
+  process.env.MONGO_URL || process.env.MONGO_URI || process.env.MONGODB_URI;
+const mongoUriSource = process.env.MONGO_URL
+  ? 'MONGO_URL'
+  : process.env.MONGO_URI
+    ? 'MONGO_URI'
+    : process.env.MONGODB_URI
+      ? 'MONGODB_URI'
+      : null;
 let lastMongoError = null;
 
 mongoose.connection.on('connected', () => {
@@ -122,6 +129,7 @@ app.get('/api/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     mongo,
     mongoError: mongo === 'connected' ? null : lastMongoError,
+    mongoSource: mongoUriSource,
     redis: redisClient.status || 'unknown',
     postgres,
     postgresError: postgres === 'error' ? getPostgresLastError() : null,
