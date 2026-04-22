@@ -139,6 +139,7 @@ app.get('/api/health', async (req, res) => {
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin/auth', require('./routes/adminAuth'));
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rides', require('./routes/rides'));
 app.use('/api/drivers', require('./routes/drivers'));
