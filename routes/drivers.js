@@ -1,6 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
+const { generateToken } = require('../services/tokenService');
+
+// Login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password required' });
+    }
+    const driverId = 'test-driver-id';
+    const token = generateToken(driverId, 'driver');
+    res.json({ token, driver: { id: driverId, email } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Register
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, name, phone, driverType } = req.body;
+    if (!email || !password || !name) {
+      return res.status(400).json({ message: 'Missing fields' });
+    }
+    const driverId = 'new-driver-id';
+    const token = generateToken(driverId, 'driver');
+    res.status(201).json({ token, driver: { id: driverId, email, name, phone, driverType } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // Get driver profile
 router.get('/:id', async (req, res) => {

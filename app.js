@@ -143,6 +143,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rides', require('./routes/rides'));
 app.use('/api/drivers', require('./routes/drivers'));
+app.use('/api/riders', require('./routes/riders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/locations', require('./routes/locations'));
 app.use('/api/airport-queue', require('./routes/airportQueue'));
