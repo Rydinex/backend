@@ -149,6 +149,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/locations', require('./routes/locations'));
 app.use('/api/airport-queue', require('./routes/airportQueue'));
 app.use('/api/prd/events', require('./routes/prdEvents'));
+app.use('/api/rydinex-poi', require('./routes/rydinexPoi'));
 
 // 404 handler
 app.use((req, res) => {
